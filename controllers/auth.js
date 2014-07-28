@@ -98,6 +98,16 @@ exports.auth = function (aReq, aRes, aNext) {
     });
 };
 
+function once(fn) {
+  var done = false;
+  return function () {
+    if (!done) {
+      done = true;
+      return fn.apply(this, arguments);
+    }
+  };
+}
+
 exports.callback = function (aReq, aRes, aNext) {
   var strategy = aReq.route.params.strategy;
   var username = aReq.session.username;
@@ -115,13 +125,13 @@ exports.callback = function (aReq, aRes, aNext) {
   // We use this library for things it was never intended to do
   if (openIdStrategies[strategy]) {
     strategyInstance._verify = function (aId, aDone) {
-      verifyPassport(aId, strategy, username, aReq.session.user, aDone);
+      verifyPassport(aId, strategy, username, aReq.session.user, once(aDone));
     }
   } else {
     strategyInstance._verify =
       function (aToken, aRefreshOrSecretToken, aProfile, aDone) {
         aReq.session.profile = aProfile;
-        verifyPassport(aProfile.id, strategy, username, aReq.session.user, aDone);
+        verifyPassport(aProfile.id, strategy, username, aReq.session.user, once(aDone));
       }
   }
 
